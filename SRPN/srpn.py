@@ -27,6 +27,28 @@ r_numbers = [1804289383,
               521595368,
               1804289383 ]
 
+class Node:
+    def __init__(self, data):
+        self.left = None
+        self.right = None
+        self.data = data
+
+    def insert(self, data):
+        if self.left is None:
+            self.left = Node(data)
+        else:
+            self.right = Node(data)
+
+    def in_order_traversal(self, root):
+        res = []
+
+        if root:
+            res = self.in_order_traversal(root.left)
+            res.append(root.data)
+            res = res + self.in_order_traversal(root.right)
+
+        return res
+
 # Takes any input and returns the saturated value
 def saturate(result):
     newresult = result
@@ -91,192 +113,140 @@ def perform_arithmetic(operand1, operand2, operator, stack_scope = stack):
 # Returns whether or not the input can be converted into integer format
 def is_number(number):
     try:
+        if "+" in str(number):
+            return False
+
         int(number)
         return True
     except:
         return False
 
+# If a command is concatenated, create a binary tree to deal with the different parts of the command
+def assess_non_number(number, head_node = None):
+    new_number = ""
 
-def assess_non_number(number, local_stack = []):
-    if len(number) == 1:
-        print("Unrecognised operator or operand \"" + number + "\".")
-        return None
-
-    for operator in operators:
-        while operator in number:
-            location = number.find(operator)
-
-            remaining = number[location + 1:]
+    for character in number:
+        if character in operators:
+            new_number = new_number + character
+            continue
             
-            while operator in remaining:
-                location = remaining.find(operator)
+        if is_number(character):
+            new_number = new_number + character
+            continue
+
+        if character == "d" or character == "=":
+            new_number = new_number + character
+            continue
+
+        if character == "r":
+            r_number = r_numbers.pop(0)
+            r_numbers.append(r_number)
+
+            new_number = new_number + str(r_number)
+            continue
+
+        if character == " ":
+            new_number = new_number + " "
+            continue
+
+        if not commenting and character != "#":
+            print("Unknown operator or operand \"" + character + "\"")
+
+    number = new_number
+
+    if head_node is None:
+        if number == "":
+            return None
+
+        head_node = Node(number)
+
+    if "d" in str(number):
+        location = str(number).find("d")
+
+        print_statement = assess_non_number(number[:location])
+        if print_statement is not None:
+            print(print_statement)
+        
+        number = str(print_statement) + number[location + 1:]
+        return assess_non_number(number)
+
+    if not is_number(head_node.data):
+        if "=" in str(head_node.data):
+            location = str(head_node.data).find("=")
+
+            if location == len(str(head_node.data)) - 1:
+                if is_number(str(head_node.data)[:location]):
+                    print(str(head_node.data)[:location])
+                    head_node.data = str(head_node.data)[:location]
+                else:
+                    number_to_print = str(head_node.data[:location])
+
+                    result = assess_non_number(number_to_print)
+
+                    print(result)
+
+                    return result
+        
+        for i in range (0, len(operators)):
+            operator = operators[len(operators) - i - 1]
+
+            if operator in str(head_node.data):
+                location = head_node.data.find(operator)
+
+                if location == 0 and operator == "-":
+                    continue
+
+                left_hand_side = head_node.data[:location]
+                right_hand_side = head_node.data[location + len(operator):]
+
+                head_node.left = Node(left_hand_side)
+                head_node.right = Node(right_hand_side)
+              
+                if head_node.left.data == "":
+                    print("Stack underflow.")
+                    head_node.data = head_node.right.data
+                    head_node.left = None
+                    head_node.right = None
+                    continue
                 
-                if location == 0:
-                    location = remaining[1:].find(operator)
+                if head_node.right.data == "":
+                    print("Stack underflow.")
+                    head_node.data = head_node.left.data
+                    head_node.left = None
+                    head_node.right = None
+                    continue
 
-                remaining = remaining[location + 1:]
+                head_node.data = operator
 
-            operand1 = None
-            operand2 = None
+                if not is_number(head_node.left.data):
+                    assess_non_number(head_node.left.data, head_node.left)
 
-            operand1Finished = False
-            operand2Finished = False
+                if not is_number(head_node.right.data):
+                    assess_non_number(head_node.right.data, head_node.right)
 
-            operand1Length = 0
-            operand2Length = 0
+                if is_number(head_node.left.data) and is_number(head_node.right.data):
+                    if head_node.data == "^":
+                        head_node.data = "**"
+                    
+                    if str(head_node.left.data)[0:1] == "0":
+                        head_node.left.data = octalToDecimal(head_node.left.data)
 
-            operand1Negative = False
-            operand2Negative = False
+                    if str(head_node.right.data)[0:1] == "0":
+                        head_node.right.data = octalToDecimal(head_node.right.data)
 
-            operand1Octal = False
-            operand2Octal = False
+                    left_data = saturate(int(head_node.left.data))
+                    right_data = saturate(int(head_node.right.data))
 
-            count = 0
+                    head_node.data = eval(str(left_data) + head_node.data + str(right_data))
+                    head_node.left = None
+                    head_node.right = None
 
-            while not operand1Finished or not operand2Finished:
-                count += 1
-
-                if not operand1Finished:
-
-                    cursor = location - count
-                    character = number[cursor:cursor + 1]
-
-                    if is_number(character):
-                        if character == "0":
-                            operand1Octal = True
-                        else:
-                            operand1Octal = False
-
-                        operand1Length += 1
-
-                        if operand1 is None:
-                            operand1 = int(character)
-                        else:
-                            operand1 += int(character) * (10 ** (count - 1))
-                    elif character == "n":
-                        operand1Negative = True
-                        operand1Finished = True
-                    else:
-                        operand1Finished = True
-
-                if not operand2Finished:
-                    cursor = location + count
-                    character = number[cursor:cursor + 1]
-
-                    if is_number(character):
-                        operand2Length += 1
-
-                        if count == 1 and character == "0":
-                            operand2Octal = True
-                            continue
-
-                        if operand2 is None:
-                            operand2 = int(character)
-                        else:
-                            operand2 *= 10
-                            operand2 += int(character)
-                    elif count == 1 and character == "n":
-                            operand2Negative = True
-                    else:
-                        operand2Finished = True
-
-            if operand1Length == 0 and operand2Length == 0:
-                print("Stack underflow.")
-                number.replace(operator, "", 1)
-
-            if operator == "-" and operand1Length == 0:
-                  number = number.replace("-", "n", 1)
-                  continue
-
-            if operand1Negative:
-                operand1 *= -1
-
-            if operand2Negative:
-                operand2 *= -1
-
-            if operand1Octal:
-                operand1 = octalToDecimal(operand1)
-
-            if operand2Octal:
-                operand2 = octalToDecimal(operand2)
-
-            perform_arithmetic(operand2, operand1, operator, local_stack)
-            value = local_stack.pop()
-            
-            arithmetic_substring = number[location - operand1Length: location + operand2Length + 1]
-            number = number.replace(arithmetic_substring, str(value))
-
-
-    #
-    # Submit this if unsuccessful
-    #
-    
-    currentOperand = None
-    currentOperandNegative = False
-
-    for element in number:
-        # Below is added in
-
-        if is_number(element):
-            if currentOperand is None:
-                currentOperand = 0
-            
-            currentOperand *= 10
-            currentOperand += int(element)
-            continue
-        elif element == "n":
-            if currentOperand is None:
-                currentOperandNegative = True
-                continue
-            else:
-                if currentOperandNegative:
-                    currentOperand *= 1
-
-                local_stack.append(currentOperand)
-                currentOperand = None
-                currentOperandNegative = False
-                continue
-
-        elif element == ")" and currentOperand is not None:
-            if currentOperandNegative:
-                currentOperand *= -1
-
-            local_stack.append(currentOperand)
-            currentOperand = None
-            currentOperandNegative = False
-            continue
-        elif element == "(":
-            continue
-
-        if currentOperand is not None:
-            if currentOperandNegative:
-                currentOperand *= -1
-
-            local_stack.append(currentOperand)
-            currentOperand = None
-            currentOperandNegative = False
-
-        # Above is added in
-        pc = process_command(element, local_stack)
-
-        if pc is not None:
-            print(str(pc))
-
-    if currentOperand is not None:
-        if currentOperandNegative:
-            currentOperand *= -1
-
-        local_stack.append(currentOperand)
-        currentOperand = None
-        currentOperandNegative = False
-
-    for element in local_stack:
-        stack.append(element)
+    return head_node.in_order_traversal(head_node)[0]
 
 # Takes in a command from the input alphabet and acts accordingly
 def process_command(command, stack_scope = stack):
     global commenting
-
+    
     if command == "#":
         commenting = not commenting
         return None
@@ -342,16 +312,24 @@ def process_command(command, stack_scope = stack):
             mantissa = saturate(int(mantissa))
             stack_scope.append(mantissa)
         else:
-            assess_non_number(mantissa)
+            result = assess_non_number(mantissa)
+
+            if result is not None:
+                stack_scope.append(result)
 
         if is_number(exponent):
             exponent = saturate(int(exponent))
             stack_scope.append(exponent)
         else:
-            assess_non_number(exponent)
+            result = assess_non_number(exponent)
+            
+            if result is not None:
+                stack_scope.append(assess_non_number(exponent))
 
     elif not is_number(command):
-        assess_non_number(command)
+        result = assess_non_number(command)
+        if result is not None:
+            stack_scope.append(result)
 
     elif len(stack_scope) > 22:
         print("Stack overflow.")
