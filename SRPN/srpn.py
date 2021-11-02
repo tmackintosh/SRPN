@@ -149,8 +149,7 @@ def assess_non_number(number, head_node = None):
             new_number = new_number + " "
             continue
 
-        if not commenting and character != "#":
-            print("Unknown operator or operand \"" + character + "\"")
+        print("Unknown operator or operand \"" + character + "\"")
 
     number = new_number
 
@@ -172,28 +171,56 @@ def assess_non_number(number, head_node = None):
 
     if not is_number(head_node.data):
         if "=" in str(head_node.data):
+            # location = str(head_node.data).find("=")
+
+            # if location == len(str(head_node.data)) - 1:
+            #     if is_number(str(head_node.data)[:location]):
+            #         print(str(head_node.data)[:location])
+            #         head_node.data = str(head_node.data)[:location]
+            #     else:
+            #         number_to_print = str(head_node.data[:location])
+
+            #         result = assess_non_number(number_to_print)
+
+            #         print(result)
+
+            #         return result
+
             location = str(head_node.data).find("=")
 
-            if location == len(str(head_node.data)) - 1:
-                if is_number(str(head_node.data)[:location]):
-                    print(str(head_node.data)[:location])
-                    head_node.data = str(head_node.data)[:location]
-                else:
-                    number_to_print = str(head_node.data[:location])
+            if location == 0:
+                print("Stack empty.")
+            else:
+                head_node.data = str(head_node.data[:location]) + str(head_node.data[location + 1:])
+                location -= 1
 
-                    result = assess_non_number(number_to_print)
+                printing = 0
+                order10 = 0
 
-                    print(result)
+                while not is_number(str(head_node.data)[location]):
+                    location -= 1
 
-                    return result
-        
+                while is_number(str(head_node.data)[location]):
+                    printing += int(str(head_node.data[location])) * (10 ** order10)
+                    head_node.data = str(head_node.data[:location]) + str(head_node.data[location + 1:])
+                    location -= 1
+                    order10 += 1
+
+                print(printing)
+
         for i in range (0, len(operators)):
             operator = operators[len(operators) - i - 1]
-
             if operator in str(head_node.data):
                 location = head_node.data.find(operator)
 
                 if location == 0 and operator == "-":
+                    if len(str(head_node.data)) == 1:
+                        print("Stack underflow.")
+                        return None
+                    elif not is_number(str(head_node.data)[1]):
+                        print("Stack underflow.")
+                        head_node.data = str(head_node.data[1:])
+
                     continue
 
                 left_hand_side = head_node.data[:location]
@@ -327,6 +354,18 @@ def process_command(command, stack_scope = stack):
                 stack_scope.append(assess_non_number(exponent))
 
     elif not is_number(command):
+        location = 0
+        adjusted = False
+        while command[location] == "-":
+            adjusted = True
+            print("Stack underflow.")
+            location += 1
+
+        command = command[location:]
+
+        if not is_number(command) and adjusted:
+            return process_command(command, stack_scope)
+
         result = assess_non_number(command)
         if result is not None:
             stack_scope.append(result)
