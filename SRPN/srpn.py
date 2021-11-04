@@ -4,7 +4,7 @@ import math
 
 stack = []
 commenting = False
-operators = ["/", "*", "+", "-", "%", "^"]
+operators = ["^", "/", "*", "+", "-", "%"]
 r_numbers = [1804289383,
               846930886,
               1681692777,
@@ -138,6 +138,7 @@ def is_number(number):
     except:
         return False
 
+# Takes an input and removes unnecessary operators
 def remove_characters(number):
     new_number = ""
 
@@ -168,21 +169,23 @@ def remove_characters(number):
         print("Unknown operator or operand \"" + character + "\"")
 
     return new_number
-    
+
+# Prints out a section of a single line input defined by the position of
+# the print identifier 
 def print_section(number, stack_scope = stack):
     location = str(number).find("d")
 
-    print_statement = assess_non_number(number[:location])
+    print_statement = assess_non_number(number[:location], stack_scope = stack_scope)
     if print_statement is not None:
         print(int(math.floor(float(print_statement))))
         process_command(str(print_statement), stack_scope, True)
             
     number = number[location + 1:]
-    result = assess_non_number(number)
+    result = assess_non_number(number, stack_scope = stack_scope)
     return result
 
 # If a command is concatenated, create a binary tree to deal with the different parts of the command
-def assess_non_number(number, head_node = None):
+def assess_non_number(number, head_node = None, stack_scope = stack):
     number = remove_characters(number)
 
     if head_node is None:
@@ -195,31 +198,36 @@ def assess_non_number(number, head_node = None):
         return print_section(number)
 
     if not is_number(head_node.data):
-        if "=" in str(head_node.data):
-            location = str(head_node.data).find("=")
+        # if "=" in str(head_node.data):
+        #     location = str(head_node.data).find("=")
 
-            if location == 0:
-                print("Stack empty.")
-            else:
-                if location != len(head_node.data) - 1:
-                    head_node.data = str(head_node.data[:location]) + str(head_node.data[location + 1:])
-                else:
-                    head_node.data = str(head_node.data[:location])
+        #     if location == 0:
+        #         print("Stack empty.")
+        #     else:
+        #         if location != len(head_node.data) - 1:
+        #             head_node.data = str(head_node.data[:location]) + str(head_node.data[location + 1:])
+        #         else:
+        #             head_node.data = str(head_node.data[:location])
 
-                location -= 1
+        #         location -= 1
 
-                printing = ""
-                order10 = 0
+        #         printing = ""
+        #         order10 = 0
 
-                while not is_number(str(head_node.data)[location]):
-                    location -= 1
+        #         while not is_number(str(head_node.data)[location]) and location >= 0:
+        #             location -= 1
 
-                while location >= 0 and is_number(str(head_node.data)[location]):
-                    printing = str(head_node.data)[location] + printing
-                    location -= 1
-                    order10 += 1
+        #         if location < 0:
+        #             print("Stack empty.")
 
-                print(octalToDecimal(saturate(int(printing))))
+        #         else:
+        #             while location >= 0 and is_number(str(head_node.data)[location]):
+        #                 printing = str(head_node.data)[location] + printing
+        #                 location -= 1
+        #                 order10 += 1
+
+        #             result = saturate(int(printing))
+        #             print(result)
 
         for i in range (0, len(operators)):
             operator = operators[len(operators) - i - 1]
@@ -243,26 +251,32 @@ def assess_non_number(number, head_node = None):
                 head_node.right = Node(right_hand_side)
               
                 if head_node.left.data == "":
-                    print("Stack underflow.")
-                    head_node.data = head_node.right.data
-                    head_node.left = None
-                    head_node.right = None
-                    continue
+                    if len(stack_scope) > 0:
+                        head_node.left.data = stack_scope.pop()
+                    else:
+                        print("Stack underflow.")
+                        head_node.data = head_node.right.data
+                        head_node.left = None
+                        head_node.right = None
+                        continue
                 
                 if head_node.right.data == "":
-                    print("Stack underflow.")
-                    head_node.data = head_node.left.data
-                    head_node.left = None
-                    head_node.right = None
-                    continue
+                    if len(stack_scope) > 0:
+                        head_node.right.data = stack_scope.pop()
+                    else:
+                        print("Stack underflow.")
+                        head_node.data = head_node.left.data
+                        head_node.left = None
+                        head_node.right = None
+                        continue
 
                 head_node.data = operator
 
                 if not is_number(head_node.left.data):
-                    assess_non_number(head_node.left.data, head_node.left)
+                    assess_non_number(head_node.left.data, head_node.left, stack_scope = stack_scope)
 
                 if not is_number(head_node.right.data):
-                    assess_non_number(head_node.right.data, head_node.right)
+                    assess_non_number(head_node.right.data, head_node.right, stack_scope = stack_scope)
 
                 if is_number(head_node.left.data) and is_number(head_node.right.data):
                     if head_node.data == "^":
@@ -274,8 +288,8 @@ def assess_non_number(number, head_node = None):
                     if str(head_node.right.data)[0:1] == "0":
                         head_node.right.data = octalToDecimal(head_node.right.data)
 
-                    left_data = saturate(int(head_node.left.data))
-                    right_data = saturate(int(head_node.right.data))
+                    left_data = saturate(float(head_node.left.data))
+                    right_data = saturate(float(head_node.right.data))
 
                     head_node.data = eval(str(left_data) + head_node.data + str(right_data))
                     head_node.left = None
@@ -305,7 +319,7 @@ def process_command(command, stack_scope = stack, is_decimal = False):
                 print(str(pc))
 
         for element in local_stack:
-            process_command(str(element), stack_scope)
+            process_command(str(element), stack_scope, True)
             
 
     elif command in operators:
@@ -322,7 +336,7 @@ def process_command(command, stack_scope = stack, is_decimal = False):
         if len(stack_scope) == 0:
           return "Stack empty."
 
-        return stack_scope[len(stack_scope) - 1]
+        return int(math.floor(stack_scope[len(stack_scope) - 1]))
 
     elif command == "d":
         if len(stack_scope) == 0:
@@ -354,23 +368,29 @@ def process_command(command, stack_scope = stack, is_decimal = False):
             mantissa = saturate(int(mantissa))
             process_command(str(mantissa), stack_scope)
         else:
-            result = assess_non_number(mantissa)
+            result = assess_non_number(mantissa, stack_scope = stack_scope)
 
             if len(stack_scope) > 22:
                 print("Stack overflow.")
                 return None
                     
+            if result == "":
+                return None
+
             stack_scope.append(str(result))
 
         if is_number(exponent):
             exponent = saturate(int(exponent))
             process_command(str(exponent), stack_scope)
         else:
-            result = assess_non_number(exponent)
+            result = assess_non_number(exponent, stack_scope = stack_scope)
             
             if result is not None:
                 if len(stack_scope) > 22:
                     print("Stack overflow.")
+                    return None
+
+                if result == "":
                     return None
 
                 stack_scope.append(str(result))
@@ -388,12 +408,15 @@ def process_command(command, stack_scope = stack, is_decimal = False):
         if not is_number(command) and adjusted:
             return process_command(str(command), stack_scope)
 
-        result = assess_non_number(command)
+        result = assess_non_number(command, stack_scope = stack_scope)
         if result is not None:
             if len(stack_scope) > 22:
                 print("Stack overflow.")
                 return None
                     
+            if result == "":
+                return None
+
             stack_scope.append(str(result))
 
     elif len(stack_scope) > 22:
@@ -402,10 +425,10 @@ def process_command(command, stack_scope = stack, is_decimal = False):
 
     else:
         if command[0:1] == "0":
-            octal = saturate(int(octalToDecimal(command)))
+            octal = saturate(float(octalToDecimal(command)))
             stack_scope.append(saturate(octal))
         else:
-            stack_scope.append(saturate(int(command)))
+            stack_scope.append(saturate(float(command)))
 
 
 #This is the entry point for the program.
@@ -418,5 +441,5 @@ if __name__ == "__main__":
             if pc != None:
                 print(str(pc))
         except Exception as e:
-            print(e)
+            # print(e)
             exit()
