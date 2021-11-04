@@ -27,6 +27,7 @@ r_numbers = [1804289383,
               521595368,
               1804289383 ]
 
+# Set up template for binary tree used for single line observations
 class Node:
     def __init__(self, data):
         self.left = None
@@ -65,12 +66,17 @@ def octalToDecimal(number):
     num_str = str(number)
     total = 0
 
+    if num_str == "08":
+        return 8
+    elif num_str == "09":
+        return 9
+
     for character in num_str:
         if not is_number(character):
             return None
 
         if int(character) > 7:
-            return None
+            return (2 ** 31) * -1
         
         total *= 8
         total += int(character)
@@ -99,7 +105,12 @@ def perform_arithmetic(operand1, operand2, operator, stack_scope = stack):
         # must be of type int.
         stack_scope.append(saturate(int(operand2 / operand1)))
     elif operator == "%":
-        stack_scope.append(saturate(operand2 % operand1))
+        operand1 = abs(operand1)
+        operand2 = abs(operand2)
+
+        result = saturate(operand2 % operand1)
+
+        stack_scope.append(result)
     elif operator == "*":
         stack_scope.append(saturate(operand1 * operand2))
     elif operator == "^":
@@ -121,8 +132,7 @@ def is_number(number):
     except:
         return False
 
-# If a command is concatenated, create a binary tree to deal with the different parts of the command
-def assess_non_number(number, head_node = None):
+def remove_characters(number):
     new_number = ""
 
     for character in number:
@@ -151,7 +161,23 @@ def assess_non_number(number, head_node = None):
 
         print("Unknown operator or operand \"" + character + "\"")
 
-    number = new_number
+    return new_number
+    
+def print_section(number, stack_scope = stack):
+    location = str(number).find("d")
+
+    print_statement = assess_non_number(number[:location])
+    if print_statement is not None:
+        print(print_statement)
+        process_command(str(print_statement))
+            
+    number = number[location + 1:]
+    result = assess_non_number(number)
+    return result
+
+# If a command is concatenated, create a binary tree to deal with the different parts of the command
+def assess_non_number(number, head_node = None):
+    number = remove_characters(number)
 
     if head_node is None:
         if number == "":
@@ -160,38 +186,20 @@ def assess_non_number(number, head_node = None):
         head_node = Node(number)
 
     if "d" in str(number):
-        location = str(number).find("d")
-
-        print_statement = assess_non_number(number[:location])
-        if print_statement is not None:
-            print(print_statement)
-        
-        number = str(print_statement) + number[location + 1:]
-        return assess_non_number(number)
+        return print_section(number)
 
     if not is_number(head_node.data):
         if "=" in str(head_node.data):
-            # location = str(head_node.data).find("=")
-
-            # if location == len(str(head_node.data)) - 1:
-            #     if is_number(str(head_node.data)[:location]):
-            #         print(str(head_node.data)[:location])
-            #         head_node.data = str(head_node.data)[:location]
-            #     else:
-            #         number_to_print = str(head_node.data[:location])
-
-            #         result = assess_non_number(number_to_print)
-
-            #         print(result)
-
-            #         return result
-
             location = str(head_node.data).find("=")
 
             if location == 0:
                 print("Stack empty.")
             else:
-                head_node.data = str(head_node.data[:location]) + str(head_node.data[location + 1:])
+                if location != len(head_node.data) - 1:
+                    head_node.data = str(head_node.data[:location]) + str(head_node.data[location + 1:])
+                else:
+                    head_node.data = str(head_node.data[:location])
+
                 location -= 1
 
                 printing = 0
@@ -200,9 +208,8 @@ def assess_non_number(number, head_node = None):
                 while not is_number(str(head_node.data)[location]):
                     location -= 1
 
-                while is_number(str(head_node.data)[location]):
+                while location >= 0 and is_number(str(head_node.data)[location]):
                     printing += int(str(head_node.data[location])) * (10 ** order10)
-                    head_node.data = str(head_node.data[:location]) + str(head_node.data[location + 1:])
                     location -= 1
                     order10 += 1
 
@@ -286,13 +293,13 @@ def process_command(command, stack_scope = stack):
         local_stack = []
 
         for element in command.split():
-            pc = process_command(element, local_stack)
+            pc = process_command(str(element), local_stack)
 
             if pc != None:
                 print(str(pc))
 
         for element in local_stack:
-            stack_scope.append(element)
+            process_command(str(element), stack_scope)
             
 
     elif command in operators:
@@ -324,7 +331,7 @@ def process_command(command, stack_scope = stack):
         r_number = r_numbers.pop(0)
         r_numbers.append(r_number)
 
-        stack_scope.append(saturate(r_number))
+        process_command(str(saturate(r_number)), stack_scope)
 
     elif command == " ":
         return None
@@ -337,21 +344,21 @@ def process_command(command, stack_scope = stack):
 
         if is_number(mantissa):
             mantissa = saturate(int(mantissa))
-            stack_scope.append(mantissa)
+            process_command(str(mantissa), stack_scope)
         else:
             result = assess_non_number(mantissa)
 
             if result is not None:
-                stack_scope.append(result)
+                process_command(str(result), stack_scope)
 
         if is_number(exponent):
             exponent = saturate(int(exponent))
-            stack_scope.append(exponent)
+            process_command(str(exponent), stack_scope)
         else:
             result = assess_non_number(exponent)
             
             if result is not None:
-                stack_scope.append(assess_non_number(exponent))
+                process_command(str(assess_non_number(exponent)), stack_scope)
 
     elif not is_number(command):
         location = 0
@@ -364,11 +371,11 @@ def process_command(command, stack_scope = stack):
         command = command[location:]
 
         if not is_number(command) and adjusted:
-            return process_command(command, stack_scope)
+            return process_command(str(command), stack_scope)
 
         result = assess_non_number(command)
         if result is not None:
-            stack_scope.append(result)
+            process_command(str(result), stack_scope)
 
     elif len(stack_scope) > 22:
         print("Stack overflow.")
@@ -376,7 +383,7 @@ def process_command(command, stack_scope = stack):
 
     else:
         if command[0:1] == "0":
-            octal = octalToDecimal(saturate(int(command)))
+            octal = saturate(int(octalToDecimal(command)))
             stack_scope.append(saturate(octal))
         else:
             stack_scope.append(saturate(int(command)))
@@ -392,5 +399,5 @@ if __name__ == "__main__":
             if pc != None:
                 print(str(pc))
         except Exception as e:
-            # print(e)
+            print(e)
             exit()
