@@ -1,5 +1,7 @@
 # Saturated Reverse Polish Calculator #
 
+import math
+
 stack = []
 commenting = False
 operators = ["/", "*", "+", "-", "%", "^"]
@@ -85,10 +87,10 @@ def octalToDecimal(number):
 
 # Performs arithmetic on two operands given an opcode
 def perform_arithmetic(operand1, operand2, operator, stack_scope = stack):
-    if str(operand1)[0:1] == "0":
+    if str(operand1)[0:1] == "0" and str(operand1)[1:2] != ".":
         operand1 = octalToDecimal(operand1)
 
-    if str(operand2)[0:1] == "0":
+    if str(operand2)[0:1] == "0" and str(operand2)[1:2] != ".":
         operand2 = octalToDecimal(operand2)
 
     if operator == "+":
@@ -127,6 +129,10 @@ def is_number(number):
         if "+" in str(number):
             return False
 
+        if "." in str(number):
+            location = str(number).find(".")
+            number = str(number)[:location] + str(number)[location + 1:]
+
         int(number)
         return True
     except:
@@ -155,8 +161,8 @@ def remove_characters(number):
             new_number = new_number + str(r_number)
             continue
 
-        if character == " ":
-            new_number = new_number + " "
+        if character == " " or character == ".":
+            new_number = new_number + character
             continue
 
         print("Unknown operator or operand \"" + character + "\"")
@@ -168,8 +174,8 @@ def print_section(number, stack_scope = stack):
 
     print_statement = assess_non_number(number[:location])
     if print_statement is not None:
-        print(print_statement)
-        process_command(str(print_statement))
+        print(int(math.floor(float(print_statement))))
+        process_command(str(print_statement), stack_scope, True)
             
     number = number[location + 1:]
     result = assess_non_number(number)
@@ -202,18 +208,18 @@ def assess_non_number(number, head_node = None):
 
                 location -= 1
 
-                printing = 0
+                printing = ""
                 order10 = 0
 
                 while not is_number(str(head_node.data)[location]):
                     location -= 1
 
                 while location >= 0 and is_number(str(head_node.data)[location]):
-                    printing += int(str(head_node.data[location])) * (10 ** order10)
+                    printing = str(head_node.data)[location] + printing
                     location -= 1
                     order10 += 1
 
-                print(printing)
+                print(octalToDecimal(saturate(int(printing))))
 
         for i in range (0, len(operators)):
             operator = operators[len(operators) - i - 1]
@@ -278,7 +284,7 @@ def assess_non_number(number, head_node = None):
     return head_node.in_order_traversal(head_node)[0]
 
 # Takes in a command from the input alphabet and acts accordingly
-def process_command(command, stack_scope = stack):
+def process_command(command, stack_scope = stack, is_decimal = False):
     global commenting
     
     if command == "#":
@@ -310,7 +316,7 @@ def process_command(command, stack_scope = stack):
         operand1 = stack_scope.pop()
         operand2 = stack_scope.pop()
 
-        perform_arithmetic(operand1, operand2, command, stack_scope)
+        perform_arithmetic(float(operand1), float(operand2), command, stack_scope)
 
     elif command == "=":
         if len(stack_scope) == 0:
@@ -323,7 +329,7 @@ def process_command(command, stack_scope = stack):
             print(-1 * 2 ** 31)
 
         for element in stack_scope:
-            print(element)
+            print(int(math.floor(float(element))))
 
         return None
 
@@ -336,8 +342,10 @@ def process_command(command, stack_scope = stack):
     elif command == " ":
         return None
 
-    elif command.__contains__("."):
+    elif command.__contains__(".") and not is_decimal:
         position = command.find(".")
+
+        print("Unrecognised operator or operand \".\".")
 
         mantissa = command[0:position]
         exponent = command[position + 1:]
@@ -348,8 +356,11 @@ def process_command(command, stack_scope = stack):
         else:
             result = assess_non_number(mantissa)
 
-            if result is not None:
-                process_command(str(result), stack_scope)
+            if len(stack_scope) > 22:
+                print("Stack overflow.")
+                return None
+                    
+            stack_scope.append(str(result))
 
         if is_number(exponent):
             exponent = saturate(int(exponent))
@@ -358,7 +369,11 @@ def process_command(command, stack_scope = stack):
             result = assess_non_number(exponent)
             
             if result is not None:
-                process_command(str(assess_non_number(exponent)), stack_scope)
+                if len(stack_scope) > 22:
+                    print("Stack overflow.")
+                    return None
+
+                stack_scope.append(str(result))
 
     elif not is_number(command):
         location = 0
@@ -375,7 +390,11 @@ def process_command(command, stack_scope = stack):
 
         result = assess_non_number(command)
         if result is not None:
-            process_command(str(result), stack_scope)
+            if len(stack_scope) > 22:
+                print("Stack overflow.")
+                return None
+                    
+            stack_scope.append(str(result))
 
     elif len(stack_scope) > 22:
         print("Stack overflow.")
