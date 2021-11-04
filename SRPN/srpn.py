@@ -198,36 +198,48 @@ def assess_non_number(number, head_node = None, stack_scope = stack):
         return print_section(number)
 
     if not is_number(head_node.data):
-        # if "=" in str(head_node.data):
-        #     location = str(head_node.data).find("=")
+        if "=" in str(head_node.data):
+            location = str(head_node.data).find("=")
+            originalLocation = location
 
-        #     if location == 0:
-        #         print("Stack empty.")
-        #     else:
-        #         if location != len(head_node.data) - 1:
-        #             head_node.data = str(head_node.data[:location]) + str(head_node.data[location + 1:])
-        #         else:
-        #             head_node.data = str(head_node.data[:location])
+            if location == 0:
+                print("Stack empty.")
+            else:
+                if location != len(head_node.data) - 1:
+                    head_node.data = str(head_node.data[:location]) + str(head_node.data[location + 1:])
+                else:
+                    head_node.data = str(head_node.data[:location])
 
-        #         location -= 1
+                location -= 1
 
-        #         printing = ""
-        #         order10 = 0
+                printing = ""
+                order10 = 0
 
-        #         while not is_number(str(head_node.data)[location]) and location >= 0:
-        #             location -= 1
+                while not is_number(str(head_node.data)[location]) and location >= 0:
+                    location -= 1
 
-        #         if location < 0:
-        #             print("Stack empty.")
+                if location < 0:
+                    print("Stack empty.")
 
-        #         else:
-        #             while location >= 0 and is_number(str(head_node.data)[location]):
-        #                 printing = str(head_node.data)[location] + printing
-        #                 location -= 1
-        #                 order10 += 1
+                else:
+                    while location >= 0 and is_number(str(head_node.data)[location]):
+                        printing = str(head_node.data)[location] + printing
+                        location -= 1
+                        order10 += 1
 
-        #             result = saturate(int(printing))
-        #             print(result)
+                    if printing[0:1] == "0":
+                        printing = octalToDecimal(int(printing))
+
+                    result = saturate(int(printing))
+                    print(result)
+                    stack_scope.append(result)
+                    
+                    length = originalLocation - location
+                    head_node.data = head_node.data[:location + 1] + head_node.data[location + length:]
+
+                    if head_node.data == "":
+                        return None
+
 
         for i in range (0, len(operators)):
             operator = operators[len(operators) - i - 1]
@@ -424,7 +436,7 @@ def process_command(command, stack_scope = stack, is_decimal = False):
         return None
 
     else:
-        if command[0:1] == "0":
+        if command[0:1] == "0" and command[1:2] != ".":
             octal = saturate(float(octalToDecimal(command)))
             stack_scope.append(saturate(octal))
         else:
@@ -441,5 +453,5 @@ if __name__ == "__main__":
             if pc != None:
                 print(str(pc))
         except Exception as e:
-            # print(e)
+            print(e)
             exit()
