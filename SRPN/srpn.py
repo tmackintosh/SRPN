@@ -105,7 +105,7 @@ def perform_arithmetic(operand1, operand2, operator, stack_scope = stack):
         # Division can return values of type float.
         # In the SRPN calculator we are reproducing, values
         # must be of type int.
-        stack_scope.append(saturate(int(operand2 / operand1)))
+        stack_scope.append(saturate(float(operand2 / operand1)))
     elif operator == "%":
         operand1 = abs(operand1)
         operand2 = abs(operand2)
@@ -186,6 +186,7 @@ def print_section(number, stack_scope = stack):
 
 # If a command is concatenated, create a binary tree to deal with the different parts of the command
 def assess_non_number(number, head_node = None, stack_scope = stack):
+    print(number)
     number = remove_characters(number)
 
     if head_node is None:
@@ -329,7 +330,6 @@ def process_command(command, stack_scope = stack, is_decimal = False):
 
         for element in local_stack:
             if len(stack_scope) > 22:
-                print("Stack overflow.")
                 return None
 
             stack_scope.append(element)
@@ -351,7 +351,7 @@ def process_command(command, stack_scope = stack, is_decimal = False):
         if len(stack_scope) == 0:
           return "Stack empty."
 
-        return int(math.floor(stack_scope[len(stack_scope) - 1]))
+        return int(math.floor(float(stack_scope[len(stack_scope) - 1])))
 
     elif command == "d":
         if len(stack_scope) == 0:
@@ -456,5 +456,5 @@ if __name__ == "__main__":
             if pc != None:
                 print(str(pc))
         except Exception as e:
-            # print(e)
+            print(e)
             exit()
