@@ -317,9 +317,6 @@ def process_command(command, stack_scope = stack, is_decimal = False):
         commenting = not commenting
         return None
 
-    if commenting:
-        return None
-
     elif len(command.split()) > 1:
 
         local_stack = []
@@ -331,8 +328,14 @@ def process_command(command, stack_scope = stack, is_decimal = False):
                 print(str(pc))
 
         for element in local_stack:
-            process_command(str(element), stack_scope, True)
-            
+            if len(stack_scope) > 22:
+                print("Stack overflow.")
+                return None
+
+            stack_scope.append(element)
+    
+    elif commenting:
+        return None    
 
     elif command in operators:
         if len(stack_scope) < 2:
@@ -453,5 +456,5 @@ if __name__ == "__main__":
             if pc != None:
                 print(str(pc))
         except Exception as e:
-            print(e)
+            # print(e)
             exit()
