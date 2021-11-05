@@ -186,7 +186,6 @@ def print_section(number, stack_scope = stack):
 
 # If a command is concatenated, create a binary tree to deal with the different parts of the command
 def assess_non_number(number, head_node = None, stack_scope = stack):
-    print(number)
     number = remove_characters(number)
 
     if head_node is None:
@@ -295,14 +294,14 @@ def assess_non_number(number, head_node = None, stack_scope = stack):
                     if head_node.data == "^":
                         head_node.data = "**"
                     
-                    if str(head_node.left.data)[0:1] == "0":
+                    if str(head_node.left.data)[0:1] == "0" and str(head_node.left.data)[1:2] != ".":
                         head_node.left.data = octalToDecimal(head_node.left.data)
 
-                    if str(head_node.right.data)[0:1] == "0":
+                    if str(head_node.right.data)[0:1] == "0" and str(head_node.right.data)[1:2] != ".":
                         head_node.right.data = octalToDecimal(head_node.right.data)
 
                     left_data = saturate(float(head_node.left.data))
-                    right_data = saturate(float(head_node.right.data))
+                    right_data = saturate(float(head_node.right.data))#
 
                     head_node.data = eval(str(left_data) + head_node.data + str(right_data))
                     head_node.left = None
@@ -456,5 +455,5 @@ if __name__ == "__main__":
             if pc != None:
                 print(str(pc))
         except Exception as e:
-            print(e)
+            # print(e)
             exit()
